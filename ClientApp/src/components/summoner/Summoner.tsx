@@ -8,66 +8,69 @@ export default function Summoner() {
     const [games, setGames] = useState<Game[]>([]);
     const [summonerLoading, setSummonerLoading] = useState(true);
     const [gamesLoading, setGamesLoading] = useState(true);
-
+    const [participants, setParticipants] = useState<Participant[]>([]);
     useEffect(() => {
+        setSummoner(null);
+        setGames([]);
+        setParticipants([]);
         populateSummonerData();
-    }, []);
+    }, [name]);
 
     const populateSummonerData = async () => {
         setSummonerLoading(true);
-        const response = await fetch('summoners');
-        const summoner: SummonerObj = await response.json();
+        const response = await fetch(`summoners/${name}`);
+        const summoner: any = await response.json();
         setSummoner(summoner);
         setSummonerLoading(false);
     }
     useEffect(() => {
         const getGames = async function () {
             setGamesLoading(true);
-            const response = await fetch('games');
+            const response = await fetch(`games/${summoner!.puuid}`);
             const games: Game[] = await response.json();
+            const participants = games.map(game => game.participants.find(participant => participant.puuid === summoner!.puuid)) as Participant[];
+            setParticipants(participants);
             setGames(games);
             setGamesLoading(false);
         }
-        getGames();
+        if (summoner) {
+            getGames();
+        }
     }, [summoner]);
 
     return (
         <div>
             <h1 id="tabelLabel">{name}</h1>
             {/* when the summoner data is loaded, show it */}
-            {!summonerLoading && summoner &&
+            {!summonerLoading && summoner ?
                 <div>
                     <p>Summoner Level: {summoner.summonerLevel}</p>
                     <p>Summoner Icon: {summoner.profileIconId}</p>
                 </div>
+                : <p>Loading...</p>
             }
             {/* when the games data is loaded, show them */}
-            {!gamesLoading && games &&
+            {!gamesLoading && games ?
                 <div>
                     <h2>Games</h2>
                     <table className='table table-striped' aria-labelledby="tabelLabel">
                         <thead>
                             <tr>
-                                <th>Game ID</th>
-                                <th>Game Mode</th>
-                                <th>Game Type</th>
-                                <th>Game Duration</th>
-                                <th>Game Creation</th>
+                                <th>Champion</th>
+                                <th>Level</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {games.map((game: Game) =>
-                                <tr key={game.gameID}>
-                                    <td>{game.gameID}</td>
-                                    <td>{game.gameMode}</td>
-                                    <td>{game.gameType}</td>
-                                    <td>{game.gameDuration}</td>
-                                    <td>{game.gameCreation}</td>
+                            {participants.map((p: Participant) =>
+                                <tr key={p?.gid}>
+                                    <td>{p?.championName}</td>
+                                    <td>{p?.champLevel}</td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
+                : <p>Loading...</p>
             }
         </div>
     );

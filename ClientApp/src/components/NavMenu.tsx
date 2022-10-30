@@ -5,7 +5,7 @@ import './NavMenu.css';
 
 export default function NavMenu() {
   const [collapsed, setCollapsed] = useState(true);
-  const [name, setName] = useState<string>('Search...');
+  const [name, setName] = useState<string>('');
 
   const toggleNavbar = () => {
     setCollapsed(!collapsed);
@@ -28,9 +28,9 @@ export default function NavMenu() {
               <NavItem>
                 <NavLink tag={Link} className="text-dark" to="/fetch-data">Fetch data</NavLink>
               </NavItem>
-              <input value={name} onChange={(val) => setName(val.target.value)}></input>
+              <input placeholder='Search...' value={name} onChange={(val) => setName(val.target.value)}></input>
               <NavItem>
-                <NavLink tag={Link} className="text-dark" to={`/${name}`}>Search</NavLink>
+                <NavLink tag={Link} className="text-dark" to={`/summoner/${name}`}>Search</NavLink>
               </NavItem>
             </ul>
           </Collapse>

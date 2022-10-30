@@ -1,10 +1,21 @@
 using sqltest;
 using System.Data;
+using Newtonsoft.Json;
 namespace dotnet_react_typescript;
 public class Summoner
 {
     public string Name { get; private set; }
-    public string Puuid { get; private set; }
+    private string _puuid { get; set; }
+    public string Puuid { 
+        get
+        {
+            return _puuid.Trim();
+        }
+        private set
+        {
+            _puuid = value.Trim();
+        }
+    }
     public string Id { get; private set; }
     public string AccountId { get; private set; }
     public string ProfileIconId { get; private set; }
@@ -21,16 +32,27 @@ public class Summoner
         RevisionDate = revisionDate;
         SummonerLevel = summonerLevel;
     }
-    public static Summoner? GetSummoner(string name)
+    public async static Task<Summoner?> GetSummoner(string name)
     {
         using (var webClient = new System.Net.WebClient())
         {
             try
             {
-                string url = $"https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{name}?api_key={Summoner.apikey}";
-                var json = webClient.DownloadString(url);
-                Summoner summoner = Newtonsoft.Json.JsonConvert.DeserializeObject<Summoner>(json);
-                return summoner;
+                // Get summoner data from Riot API and deserialize it
+                using (var httpClient = new HttpClient())
+                {
+                    string url = $"https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{name}?api_key={Summoner.apikey}";
+                    var json = await httpClient.GetStringAsync(url);
+                    Summoner summoner = JsonConvert.DeserializeObject<Summoner>(json);
+                    if (summoner != null) summoner.updateUploadSummoner();
+                    return summoner;
+                    // Now parse with JSON.Net
+                }
+                // string url = $"https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-name/{name}?api_key={Summoner.apikey}";
+                // var json = webClient.DownloadString(url);
+                // Summoner summoner = Newtonsoft.Json.JsonConvert.DeserializeObject<Summoner>(json);
+                // if (summoner != null) summoner.updateUploadSummoner();
+                // return summoner;
 
             }
             catch (Exception e)

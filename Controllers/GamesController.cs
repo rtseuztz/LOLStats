@@ -18,8 +18,8 @@ public class GamesController : ControllerBase
         _logger = logger;
     }
 
-    [HttpGet]
-    public async Task<IEnumerable<Games>> Get()
+    [HttpGet("{puuid}")]
+    public async Task<IEnumerable<Games>> Get(string puuid)
     {
         // return Enumerable.Range(1, 5).Select(index => new WeatherForecast
         // {
@@ -28,8 +28,7 @@ public class GamesController : ControllerBase
         //     Summary = Summaries[Random.Shared.Next(Summaries.Length)]
         // })
         // .ToArray();
-        var summoner = Summoner.GetSummoner("rtseuztz");
-        var games = await Games.getGames(summoner.Puuid);
+        var games = await Games.getGames(puuid);
         return games;
     }
 }

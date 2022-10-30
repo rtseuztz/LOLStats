@@ -19,9 +19,9 @@ public class SummonersController : ControllerBase
     }
 
     [HttpGet("{name}")]
-    public Summoner Get(string name)
+    public async Task<Summoner> Get(string name)
     {
-        var summoner = Summoner.GetSummoner(name);
+        var summoner = await Summoner.GetSummoner(name);
         return summoner;
     }
 }

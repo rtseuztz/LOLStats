@@ -8,7 +8,7 @@ public class Games
     public long gameCreation { get; set; }
     public long gameDuration { get; set; }
     public long gameEndTimestamp { get; set; }
-    public long gameId { get; set; }
+    public long GameID { get; set; }
     public string gameMode { get; set; }
     public string gameName { get; set; }
     public long gameStartTimestamp { get; set; }
@@ -18,12 +18,12 @@ public class Games
     public long mapId { get; set; }
 
     //constructor with all the properties
-    public Games(long gameCreation, long gameDuration, long gameEndTimestamp, long gameId, string gameMode, string gameName, long gameStartTimestamp, string gameType, string gameVersion, List<Participant> participants, long mapId)
+    public Games(long gameCreation, long gameDuration, long gameEndTimestamp, long GameID, string gameMode, string gameName, long gameStartTimestamp, string gameType, string gameVersion, List<Participant> participants, long mapId)
     {
         this.gameCreation = gameCreation;
         this.gameDuration = gameDuration;
         this.gameEndTimestamp = gameEndTimestamp;
-        this.gameId = gameId;
+        this.GameID = GameID;
         this.gameMode = gameMode;
         this.gameName = gameName;
         this.gameStartTimestamp = gameStartTimestamp;
@@ -40,15 +40,15 @@ public class Games
         {
             await SQL.executeQuery(@"
                 INSERT INTO Games
-                (gameCreation, gameDuration, gameEndTimestamp, gameId, gameMode, gameName, gameStartTimestamp, gameType, gameVersion, mapId) 
+                (gameCreation, gameDuration, gameEndTimestamp, GameID, gameMode, gameName, gameStartTimestamp, gameType, gameVersion, mapId) 
                 VALUES
-                (@gameCreation, @gameDuration, @gameEndTimestamp, @gameId, @gameMode, @gameName, @gameStartTimestamp, @gameType, @gameVersion, @mapId)",
-                SQL.getParams(new dynamic[] { "gameCreation", gameCreation, "gameDuration", gameDuration, "gameEndTimestamp", gameEndTimestamp, "gameId", gameId, "gameMode", gameMode, "gameName", gameName, "gameStartTimestamp", gameStartTimestamp, "gameType", gameType, "gameVersion", gameVersion, "mapId", mapId }));
+                (@gameCreation, @gameDuration, @gameEndTimestamp, @GameID, @gameMode, @gameName, @gameStartTimestamp, @gameType, @gameVersion, @mapId)",
+                SQL.getParams(new dynamic[] { "gameCreation", gameCreation, "gameDuration", gameDuration, "gameEndTimestamp", gameEndTimestamp, "GameID", GameID, "gameMode", gameMode, "gameName", gameName, "gameStartTimestamp", gameStartTimestamp, "gameType", gameType, "gameVersion", gameVersion, "mapId", mapId }));
 
             foreach (Participant participant in participants)
             {
                 await participant.checkUploadSummoner();
-                await participant.uploadParticipant(gameId);
+                await participant.uploadParticipant(GameID);
             }
 
         }
@@ -57,76 +57,37 @@ public class Games
             Console.WriteLine(e);
         }
     }
-    // public static async Task<List<Games>> getGames(string puuid)
-    // {
-    //     //if not processed, then do an api call for games. This is for Summoners added through other searches.
-    //     //Otherwise, if the lmod date is less than 24 hours ago, don't update the user's games
-    //     DataTable dt = await SQL.executeQuery(@"
-    //         SELECT lmod FROM Summoners WHERE puuid = @puuid AND processed = 1",
-    //         SQL.getParams(new dynamic[] { "puuid", puuid }));
-    //     if (dt.Rows.Count > 0 && (DateTime.Now - DateTime.Parse(dt.Rows[0][0].ToString())).TotalHours < 24)
-    //     {
-    //         return await getGamesFromDB(puuid);
-    //     }
-    //     else
-    //     {
-    //         //some games may be in the DB from other searches, so we only need to get the games that aren't in the DB
-    //         return await getGamesFromDB(puuid); //getGamesFromAPI(puuid);
-    //     }
-    // }
+  
     public static async Task<List<Games>> getGames(string puuid)
     {
         List<Games> games = new List<Games>();
         string url = "https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/" + puuid + "/ids?start=0&count=20&api_key=" + apikey;
-        List<string> gameIds = new List<string>();
+        List<string> GameIDs = new List<string>();
         using (var webClient = new System.Net.WebClient())
         {
             string json = webClient.DownloadString(url);
-            gameIds = JsonConvert.DeserializeObject<List<string>>(json);
+            GameIDs = JsonConvert.DeserializeObject<List<string>>(json);
         }
-        for (int i = 0; i < gameIds.Count; i++)
+        for (int i = 0; i < GameIDs.Count; i++)
         {
             //remove everything before and including the _ in the game id
-            gameIds[i] = gameIds[i].Substring(gameIds[i].IndexOf("_") + 1);
+            GameIDs[i] = GameIDs[i].Substring(GameIDs[i].IndexOf("_") + 1);
         }
         try
         {
-            List<string> gameIdsInDB = new List<string>();
+            List<string> GameIDsInDB = new List<string>();
             DataTable gidDt = await SQL.executeQuery(@"
-                SELECT gameId FROM Games WHERE gameId IN (" + string.Join(",", gameIds) + ")");
+                SELECT GameID FROM Games WHERE GameID IN (" + string.Join(",", GameIDs) + ")");
             foreach (DataRow row in gidDt.Rows)
             {
-                gameIdsInDB.Add(row[0].ToString());
+                GameIDsInDB.Add(row[0].ToString());
             }
-            List<string> gamesMissing = gameIds.Where(x => !gameIdsInDB.Contains(x))
+            List<string> gamesMissing = GameIDs.Where(x => !GameIDsInDB.Contains(x))
                          .ToList();
-            List<string> gamesInDB = gameIds.Where(x => gameIdsInDB.Contains(x))
+            List<string> gamesInDB = GameIDs.Where(x => GameIDsInDB.Contains(x))
                          .ToList();
             games.AddRange(await getGamesFromAPI(gamesMissing));
             games.AddRange(await getGamesFromDB(gamesInDB));
-
-            // DataTable dt = await SQL.executeQuery(@"
-            //     SELECT * FROM Games WHERE gameid IN (
-            //     SELECT gid FROM ChampionPlayedIn WHERE puuid = @puuid
-            //     ) ORDER BY gameStartTimestamp DESC",
-            //     SQL.getParams(new dynamic[] { "puuid", puuid }));
-            // foreach (DataRow row in dt.Rows)
-            // {
-            //     List<Participant> participants = await Participant.getParticipants(long.Parse(row["gameId"].ToString()));
-            //     games.Add(new Games(
-            //         long.Parse(row["gameCreation"].ToString()),
-            //         long.Parse(row["gameDuration"].ToString()),
-            //         long.Parse(row["gameEndTimestamp"].ToString()),
-            //         long.Parse(row["gameId"].ToString()),
-            //         row["gameMode"].ToString(),
-            //         row["gameName"].ToString(),
-            //         long.Parse(row["gameStartTimestamp"].ToString()),
-            //         row["gameType"].ToString(),
-            //         row["gameVersion"].ToString(),
-            //         participants,
-            //         long.Parse(row["mapId"].ToString())
-            //     ));
-            // }
         }
         catch (Exception e)
         {
@@ -134,21 +95,25 @@ public class Games
         }
         return games;
     }
-    private async static Task<List<Games>> getGamesFromDB(List<string> gameids)
+    private async static Task<List<Games>> getGamesFromDB(List<string> GameIDs)
     {
         List<Games> games = new List<Games>();
         try
         {
+            if (GameIDs.Count < 1)
+            {
+                return games;
+            }
             DataTable dt = await SQL.executeQuery(@"
-                SELECT * FROM Games WHERE gameid IN (" + string.Join(",", gameids) + ") ORDER BY gameStartTimestamp DESC");
+                SELECT * FROM Games WHERE GameID IN (" + string.Join(",", GameIDs) + ") ORDER BY gameStartTimestamp DESC");
             foreach (DataRow row in dt.Rows)
             {
-                List<Participant> participants = await Participant.getParticipants(long.Parse(row["gameId"].ToString()));
+                List<Participant> participants = await Participant.getParticipants(long.Parse(row["GameID"].ToString()));
                 games.Add(new Games(
                     long.Parse(row["gameCreation"].ToString()),
                     long.Parse(row["gameDuration"].ToString()),
                     long.Parse(row["gameEndTimestamp"].ToString()),
-                    long.Parse(row["gameId"].ToString()),
+                    long.Parse(row["GameID"].ToString()),
                     row["gameMode"].ToString(),
                     row["gameName"].ToString(),
                     long.Parse(row["gameStartTimestamp"].ToString()),
@@ -165,17 +130,17 @@ public class Games
         }
         return games;
     }
-    private static async Task<List<Games>> getGamesFromAPI(List<String> gameids)
+    private static async Task<List<Games>> getGamesFromAPI(List<String> GameIDs)
     {
         List<Games> games = new List<Games>();
         using (var webClient = new System.Net.WebClient())
         {
-            foreach (string gameId in gameids)
+            foreach (string GameID in GameIDs)
             {
-                string url2 = "https://americas.api.riotgames.com/lol/match/v5/matches/NA1_" + gameId + "?api_key=" + apikey;
+                string url2 = "https://americas.api.riotgames.com/lol/match/v5/matches/NA1_" + GameID + "?api_key=" + apikey;
                 string json2 = webClient.DownloadString(url2);
                 gameJSON gamejson = JsonConvert.DeserializeObject<gameJSON>(json2);
-                Games game = new Games(gamejson.info.gameCreation, gamejson.info.gameDuration, gamejson.info.gameEndTimestamp, gamejson.info.gameId, gamejson.info.gameMode, gamejson.info.gameName, gamejson.info.gameStartTimestamp, gamejson.info.gameType, gamejson.info.gameVersion, gamejson.info.participants, gamejson.info.mapId);
+                Games game = new Games(gamejson.info.gameCreation, gamejson.info.gameDuration, gamejson.info.gameEndTimestamp, gamejson.info.GameID, gamejson.info.gameMode, gamejson.info.gameName, gamejson.info.gameStartTimestamp, gamejson.info.gameType, gamejson.info.gameVersion, gamejson.info.participants, gamejson.info.mapId);
                 games.Add(game);
                 game.uploadGame();
             }
@@ -216,7 +181,18 @@ public class Participant
     public int goldSpent { get; set; }
     public string individualPosition { get; set; }
     public int inhibitorKills { get; set; }
-    public string puuid { get; set; }
+
+    private string _puuid { get; set; }
+    public string puuid {
+        get
+        {
+            return _puuid.Trim();
+        }
+        set
+        {
+            _puuid = value.Trim();
+        }
+    }
     public Boolean win { get; set; }
     public long gid { get; set; }
 
@@ -271,14 +247,16 @@ public class Participant
             SQL.getParams(new dynamic[] {
                 "puuid", puuid,
             }));
+            return true;
+
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
+            return false;
         }
-        return true;
     }
-    public async Task<Boolean> uploadParticipant(long gameid)
+    public async Task<Boolean> uploadParticipant(long GameID)
     {
         try
         {
@@ -286,9 +264,9 @@ public class Participant
             INSERT INTO ChampionPlayedIn
             (gid, cname, win, puuid, assists, baronKills, bountyLevel, champExperience, champLevel, championId, championTransform, consumablesPurchased, damageDealtToBuildings, damageDealtToObjectives, damageDealtToTurrets, damageSelfMitigated, deaths, detectorWardsPlaced, doubleKills, dragonKills, firstBloodAssist, firstBloodKill, firstTowerAssist, firstTowerKill, gameEndedInEarlySurrender, gameEndedInSurrender, goldEarned, goldSpent, individualPosition, inhibitorKills)
             VALUES
-            (@gameId, @championName, @win, @puuid, @assists, @baronKills, @bountyLevel, @champExperience, @champLevel, @championId, @championTransform, @consumablesPurchased, @damageDealtToBuildings, @damageDealtToObjectives, @damageDealtToTurrets, @damageSelfMitigated, @deaths, @detectorWardsPlaced, @doubleKills, @dragonKills, @firstBloodAssist, @firstBloodKill, @firstTowerAssist, @firstTowerKill, @gameEndedInEarlySurrender, @gameEndedInSurrender, @goldEarned, @goldSpent, @individualPosition, @inhibitorKills)",
+            (@GameID, @championName, @win, @puuid, @assists, @baronKills, @bountyLevel, @champExperience, @champLevel, @championId, @championTransform, @consumablesPurchased, @damageDealtToBuildings, @damageDealtToObjectives, @damageDealtToTurrets, @damageSelfMitigated, @deaths, @detectorWardsPlaced, @doubleKills, @dragonKills, @firstBloodAssist, @firstBloodKill, @firstTowerAssist, @firstTowerKill, @gameEndedInEarlySurrender, @gameEndedInSurrender, @goldEarned, @goldSpent, @individualPosition, @inhibitorKills)",
             SQL.getParams(new dynamic[] {
-            "gameID", gameid ,
+            "GameID", GameID ,
             "championName", championName,
             "win", win,
             "puuid", puuid.Trim(),
@@ -321,23 +299,24 @@ public class Participant
            })
            );
             Console.WriteLine(x);
+            return true;
 
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
+            return false;
         }
-        return true;
     }
-    public static async Task<List<Participant>> getParticipants(long gameID)
+    public static async Task<List<Participant>> getParticipants(long GameID)
     {
         List<Participant> participants = new List<Participant>();
         try
         {
             DataTable dt = await SQL.executeQuery(@"
             SELECT * FROM ChampionPlayedIn
-            WHERE gid = @gameID",
-            SQL.getParams(new dynamic[] { "gameID", gameID })
+            WHERE gid = @GameID",
+            SQL.getParams(new dynamic[] { "GameID", GameID })
             );
             participants = Participant.listFromDT(dt);
         }
