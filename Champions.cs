@@ -26,7 +26,6 @@ namespace Champions
                 var ChampionObj = data.Data;
                 foreach (var champion in ChampionObj)
                 {
-                    Console.WriteLine(champion.Value.Key);
                     await SQL.executeQuery("INSERT INTO Champions (id, name) VALUES (@id, @name)", SQL.getParams(new dynamic[] { "id", champion.Value.Key, "name", champion.Value.Name }));
                 }
             }
