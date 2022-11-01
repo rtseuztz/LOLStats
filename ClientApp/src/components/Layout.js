@@ -7,7 +7,7 @@ export class Layout extends Component {
 
   render() {
     return (
-      <div>
+      <div className="gradient p-3 mb-2 text-white">
         <NavMenu />
         <Container>{this.props.children}</Container>
       </div>

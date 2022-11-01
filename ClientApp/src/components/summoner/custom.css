@@ -1,0 +1,10 @@
+  
+#summoner .contrast {
+    backdrop-filter: contrast(.2);
+}
+.win-true {
+    background-color: #97a6c3;
+}
+.win-false {
+    background-color: #c3a697;
+}
